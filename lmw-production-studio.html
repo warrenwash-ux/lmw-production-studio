@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LMW Production Studio</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --black:#080808;--deep:#0d0d0d;--surface:#141414;--surface2:#1c1c1c;
+  --border:#2a2a2a;--gold:#C9974A;--gold-bright:#E0B262;--gold-dim:#7A5A28;
+  --gold-bg:rgba(201,151,74,0.08);--cream:#F0EAD8;--muted:#666;
+  --white:#F5F2EC;--danger:#E05050;--green:#4CAF7D;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--black);color:var(--white);font-family:'Inter',sans-serif;font-size:14px;min-height:100vh;}
+button{cursor:pointer;}
+
+/* HEADER */
+.hdr{background:linear-gradient(135deg,#0d0d0d,#1a1208);border-bottom:1px solid var(--border);padding:0 28px;display:flex;align-items:center;justify-content:space-between;height:58px;position:sticky;top:0;z-index:100;}
+.hdr-logo{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:.12em;color:var(--gold-bright);}
+.hdr-sub{font-family:'Space Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:.15em;margin-left:10px;}
+.api-status{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--muted);font-family:'Space Mono',monospace;}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:pulse 2s infinite;}
+.dot.off{background:var(--danger);animation:none;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* CHARACTER BAR */
+.char-bar{background:var(--surface);border-bottom:1px solid var(--border);padding:12px 28px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
+.char-bar-label{font-family:'Space Mono',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);white-space:nowrap;}
+.char-preview{position:relative;width:46px;height:46px;border-radius:8px;border:2px solid var(--gold-dim);overflow:hidden;flex-shrink:0;background:var(--surface2);display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:20px;}
+.char-preview img{width:100%;height:100%;object-fit:cover;}
+.char-name{font-size:12px;font-weight:600;color:var(--white);flex:1;min-width:80px;}
+.char-desc-short{font-size:11px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px;}
+.char-actions{display:flex;gap:8px;margin-left:auto;}
+.char-btn{padding:7px 14px;border-radius:6px;border:1px solid var(--border);background:none;color:#aaa;font-size:12px;font-family:'Inter',sans-serif;transition:all .15s;}
+.char-btn:hover{border-color:var(--gold);color:var(--gold);}
+.char-btn.primary{background:var(--gold-bg);border-color:var(--gold-dim);color:var(--gold-bright);}
+.char-btn.primary:hover{background:rgba(201,151,74,.15);border-color:var(--gold);}
+
+/* CHARACTER MODAL */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:200;display:none;align-items:center;justify-content:center;padding:20px;}
+.modal-bg.show{display:flex;}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:12px;width:100%;max-width:480px;overflow:hidden;}
+.modal-hdr{padding:20px 24px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.modal-hdr h3{font-size:16px;font-weight:600;}
+.modal-close{background:none;border:none;color:var(--muted);font-size:18px;line-height:1;}
+.modal-body{padding:24px;}
+.modal-tabs{display:flex;gap:0;margin-bottom:20px;border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+.modal-tab{flex:1;padding:10px;background:none;border:none;color:var(--muted);font-size:13px;font-family:'Inter',sans-serif;font-weight:500;transition:all .15s;}
+.modal-tab.active{background:var(--gold-bg);color:var(--gold-bright);}
+.m-field{margin-bottom:14px;}
+.m-field label{display:block;font-size:11px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;}
+.m-field input,.m-field textarea,.m-field select{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--white);font-family:'Inter',sans-serif;font-size:13px;padding:10px 12px;outline:none;}
+.m-field input:focus,.m-field textarea:focus{border-color:var(--gold-dim);}
+.m-field textarea{min-height:70px;resize:vertical;}
+.upload-zone{border:2px dashed var(--border);border-radius:8px;padding:24px;text-align:center;cursor:pointer;transition:border-color .15s;}
+.upload-zone:hover{border-color:var(--gold-dim);}
+.upload-zone input{display:none;}
+.upload-preview{width:80px;height:80px;border-radius:8px;object-fit:cover;margin:0 auto 8px;display:block;}
+.chip-group{display:flex;flex-wrap:wrap;gap:6px;}
+.chip{padding:5px 11px;border-radius:20px;border:1px solid var(--border);background:none;color:#888;font-size:12px;font-family:'Inter',sans-serif;transition:all .15s;}
+.chip.active,.chip:hover{border-color:var(--gold);color:var(--gold-bright);background:var(--gold-bg);}
+.gen-btn{width:100%;padding:13px;background:var(--gold);color:#000;border:none;border-radius:8px;font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:.1em;margin-top:4px;}
+.gen-btn:hover{background:var(--gold-bright);}
+.gen-btn:disabled{opacity:.5;cursor:not-allowed;}
+
+/* TABS */
+.studio-tabs{display:flex;border-bottom:1px solid var(--border);padding:0 28px;background:var(--deep);overflow-x:auto;}
+.tab-btn{display:flex;align-items:center;gap:7px;padding:14px 22px;background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-family:'Inter',sans-serif;font-size:13px;font-weight:500;white-space:nowrap;transition:all .15s;}
+.tab-btn:hover{color:var(--white);}
+.tab-btn.active{color:var(--gold-bright);border-bottom-color:var(--gold);}
+
+/* BODY */
+.studio-body{display:grid;grid-template-columns:320px 1fr;min-height:calc(100vh - 160px);}
+
+/* FORM */
+.form-panel{background:var(--surface);border-right:1px solid var(--border);padding:22px 20px;overflow-y:auto;display:flex;flex-direction:column;gap:16px;}
+.panel-label{font-family:'Space Mono',monospace;font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--gold);margin-bottom:2px;}
+.field{display:flex;flex-direction:column;gap:5px;}
+.field label{font-size:11px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:.05em;}
+.field input,.field textarea,.field select{background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--white);font-family:'Inter',sans-serif;font-size:13px;padding:9px 11px;outline:none;}
+.field input:focus,.field textarea:focus,.field select:focus{border-color:var(--gold-dim);}
+.field textarea{resize:vertical;min-height:70px;}
+.field select option{background:#1c1c1c;}
+.divider{height:1px;background:var(--border);}
+.generate-btn{width:100%;padding:13px;background:var(--gold);color:#000;border:none;border-radius:8px;font-family:'Bebas Neue',sans-serif;font-size:17px;letter-spacing:.1em;margin-top:auto;}
+.generate-btn:hover{background:var(--gold-bright);}
+.generate-btn:disabled{opacity:.5;cursor:not-allowed;}
+
+/* OUTPUT */
+.output-panel{background:var(--deep);padding:28px;overflow-y:auto;display:flex;flex-direction:column;}
+.out-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:12px;color:var(--muted);}
+.out-empty-icon{font-size:52px;opacity:.3;}
+.out-empty h3{font-size:17px;color:#555;font-weight:400;}
+.out-empty p{font-size:13px;max-width:280px;line-height:1.6;}
+.out-content{display:flex;flex-direction:column;gap:18px;}
+.out-hdr{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:4px;}
+.out-title{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:.06em;color:var(--gold-bright);line-height:1;}
+.out-sub{font-size:12px;color:var(--muted);margin-top:3px;}
+.copy-all-btn{padding:7px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--white);font-size:12px;font-family:'Inter',sans-serif;white-space:nowrap;flex-shrink:0;}
+.copy-all-btn:hover{border-color:var(--gold);color:var(--gold);}
+.out-sec{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;}
+.out-sec-hdr{display:flex;align-items:center;justify-content:space-between;padding:11px 15px;border-bottom:1px solid var(--border);background:rgba(201,151,74,.05);}
+.out-sec-title{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);font-family:'Space Mono',monospace;}
+.copy-btn{padding:4px 9px;background:none;border:1px solid var(--border);border-radius:4px;color:var(--muted);font-size:11px;font-family:'Space Mono',monospace;}
+.copy-btn:hover{border-color:var(--gold);color:var(--gold);}
+.copy-btn.copied{border-color:var(--green);color:var(--green);}
+.out-sec-body{padding:15px;}
+.shot-list{display:flex;flex-direction:column;gap:10px;}
+.shot-card{display:grid;grid-template-columns:38px 1fr;gap:10px;align-items:start;}
+.shot-num{width:38px;height:38px;border-radius:7px;background:var(--gold-bg);border:1px solid var(--gold-dim);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:17px;color:var(--gold);flex-shrink:0;}
+.shot-type{font-size:10px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:.08em;}
+.shot-desc{font-size:13px;color:var(--white);line-height:1.5;margin-top:2px;}
+.shot-dur{font-size:10px;color:var(--muted);margin-top:2px;font-family:'Space Mono',monospace;}
+.prompt-block{background:var(--surface2);border-radius:6px;padding:11px 13px;font-family:'Space Mono',monospace;font-size:11px;line-height:1.7;color:#ccc;white-space:pre-wrap;word-break:break-word;border-left:3px solid var(--gold-dim);margin-bottom:9px;cursor:pointer;transition:border-color .15s;}
+.prompt-block:hover{border-left-color:var(--gold);}
+.prompt-block:last-child{margin-bottom:0;}
+.tool-label{font-size:10px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:.12em;margin-bottom:5px;margin-top:12px;}
+.tool-label:first-child{margin-top:0;}
+.script-block{display:flex;flex-direction:column;gap:9px;}
+.script-line{display:grid;grid-template-columns:80px 1fr;gap:10px;font-size:13px;line-height:1.6;}
+.script-cue{font-family:'Space Mono',monospace;font-size:10px;color:var(--gold);text-transform:uppercase;padding-top:2px;font-weight:700;}
+.brief-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;}
+.brief-item{background:var(--surface2);border-radius:6px;padding:10px 12px;border-left:3px solid var(--gold-dim);}
+.brief-label{font-size:10px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px;}
+.brief-val{font-size:12px;color:var(--white);line-height:1.5;}
+.loading{display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:60px 20px;text-align:center;}
+.loading.show{display:flex;}
+.spinner{width:38px;height:38px;border:3px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.char-badge{display:flex;align-items:center;gap:8px;background:var(--gold-bg);border:1px solid var(--gold-dim);border-radius:8px;padding:8px 12px;margin-bottom:4px;}
+.char-badge-img{width:32px;height:32px;border-radius:6px;object-fit:cover;flex-shrink:0;border:1px solid var(--gold-dim);}
+.char-badge-placeholder{width:32px;height:32px;border-radius:6px;background:var(--surface2);border:1px solid var(--gold-dim);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;}
+.char-badge-info{flex:1;min-width:0;}
+.char-badge-name{font-size:12px;font-weight:600;color:var(--gold-bright);}
+.char-badge-desc{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+@media(max-width:768px){.studio-body{grid-template-columns:1fr}.form-panel{border-right:none;border-bottom:1px solid var(--border)}.output-panel{padding:18px}.brief-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<!-- API MODAL -->
+<div class="modal-bg" id="apiModal">
+  <div class="modal">
+    <div class="modal-hdr"><h3>🔑 Enter API Key</h3></div>
+    <div class="modal-body">
+      <p style="color:var(--muted);font-size:13px;margin-bottom:16px;line-height:1.6;">Your Anthropic API key — stored locally, never shared.</p>
+      <input type="password" id="apiKeyInput" placeholder="sk-ant-..." style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--white);font-family:'Space Mono',monospace;font-size:13px;padding:11px;outline:none;margin-bottom:12px;">
+      <button class="gen-btn" onclick="saveKey()">SAVE & CONTINUE</button>
+    </div>
+  </div>
+</div>
+
+<!-- CHARACTER MODAL -->
+<div class="modal-bg" id="charModal">
+  <div class="modal">
+    <div class="modal-hdr">
+      <h3>Character Setup</h3>
+      <button class="modal-close" onclick="closeCharModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-tabs">
+        <button class="modal-tab active" onclick="switchCharTab('upload')">📤 Upload Mine</button>
+        <button class="modal-tab" onclick="switchCharTab('generate')">✨ Generate New</button>
+      </div>
+
+      <!-- UPLOAD TAB -->
+      <div id="charUploadTab">
+        <div class="m-field">
+          <label>Upload Character Image</label>
+          <div class="upload-zone" onclick="document.getElementById('charImageInput').click()">
+            <input type="file" id="charImageInput" accept="image/*" onchange="handleImageUpload(event)">
+            <div id="uploadPlaceholder">
+              <div style="font-size:32px;margin-bottom:8px;">🖼</div>
+              <div style="font-size:13px;color:var(--muted);">Click to upload a photo, avatar, or reference image</div>
+              <div style="font-size:11px;color:#555;margin-top:4px;">PNG, JPG, WEBP — your Zairey photo, AI avatar, character art, anything</div>
+            </div>
+            <img id="uploadPreview" class="upload-preview" style="display:none;">
+          </div>
+        </div>
+        <div class="m-field">
+          <label>Character Name</label>
+          <input type="text" id="uploadCharName" placeholder="e.g. Zairey, Zeke Zoom, Rufus...">
+        </div>
+        <div class="m-field">
+          <label>Brief Description (optional — Claude will analyze the image too)</label>
+          <textarea id="uploadCharDesc" placeholder="e.g. Lead vocalist of Zairey, R&B/Jazz artist, confident and soulful..."></textarea>
+        </div>
+        <button class="gen-btn" onclick="analyzeAndSaveCharacter()" id="analyzeBtn">ANALYZE & SAVE CHARACTER</button>
+      </div>
+
+      <!-- GENERATE TAB -->
+      <div id="charGenerateTab" style="display:none;">
+        <div class="m-field">
+          <label>Character Name</label>
+          <input type="text" id="genCharName" placeholder="e.g. Zeke Zoom, Shadow, Aria...">
+        </div>
+        <div class="m-field">
+          <label>Character Type</label>
+          <select id="genCharType">
+            <option>Music Artist / Singer</option>
+            <option>Animated Mascot</option>
+            <option>Children's Character</option>
+            <option>Brand Spokesperson</option>
+            <option>Villain / Antagonist</option>
+            <option>Hero / Protagonist</option>
+          </select>
+        </div>
+        <div class="m-field">
+          <label>Personality & Vibe</label>
+          <textarea id="genCharPersonality" placeholder="e.g. Cool, confident, faith-driven, speaks truth through music..."></textarea>
+        </div>
+        <div class="m-field">
+          <label>Visual Style</label>
+          <div class="chip-group" id="genStyleChips">
+            <button class="chip active" onclick="this.classList.toggle('active')">Realistic</button>
+            <button class="chip" onclick="this.classList.toggle('active')">Animated / Cartoon</button>
+            <button class="chip" onclick="this.classList.toggle('active')">Pixar 3D</button>
+            <button class="chip" onclick="this.classList.toggle('active')">Anime</button>
+            <button class="chip" onclick="this.classList.toggle('active')">Dark Fantasy</button>
+            <button class="chip" onclick="this.classList.toggle('active')">Urban / Street</button>
+          </div>
+        </div>
+        <div class="m-field">
+          <label>Physical Description</label>
+          <textarea id="genCharPhysical" placeholder="Age range, build, hair, skin tone, style of clothing, signature accessories..."></textarea>
+        </div>
+        <button class="gen-btn" onclick="generateNewCharacter()" id="generateCharBtn">⚡ GENERATE CHARACTER PROFILE</button>
+        <div id="charGenLoading" style="display:none;text-align:center;padding:20px;color:var(--muted);">
+          <div class="spinner" style="margin:0 auto 12px;"></div>
+          Building character profile...
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- HEADER -->
+<header class="hdr">
+  <div style="display:flex;align-items:baseline;">
+    <span class="hdr-logo">LMW PRODUCTION STUDIO</span>
+    <span class="hdr-sub">AI-POWERED</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:14px;">
+    <div class="api-status"><div class="dot" id="apiDot"></div><span id="apiStatusText">API Ready</span></div>
+    <button onclick="clearKey()" style="font-size:11px;color:var(--muted);background:none;border:none;font-family:'Space Mono',monospace;">Change Key</button>
+  </div>
+</header>
+
+<!-- CHARACTER BAR -->
+<div class="char-bar">
+  <div class="char-bar-label">Active Character</div>
+  <div class="char-preview" id="charPreviewImg">👤</div>
+  <div style="flex:1;min-width:0;">
+    <div class="char-name" id="charBarName">No character set</div>
+    <div class="char-desc-short" id="charBarDesc">Set a character to personalize every prompt</div>
+  </div>
+  <div class="char-actions">
+    <button class="char-btn primary" onclick="openCharModal()">⚡ Set Character</button>
+    <button class="char-btn" onclick="clearCharacter()" id="clearCharBtn" style="display:none;">Clear</button>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="studio-tabs">
+  <button class="tab-btn active" data-tab="video" onclick="switchTab('video')">🎬 Music Video</button>
+  <button class="tab-btn" data-tab="ad" onclick="switchTab('ad')">📱 Social Ad</button>
+  <button class="tab-btn" data-tab="animation" onclick="switchTab('animation')">✨ Animation</button>
+</div>
+
+<div class="studio-body">
+
+  <!-- MUSIC VIDEO FORM -->
+  <div class="form-panel" id="form-video">
+    <div><div class="panel-label">Music Video Studio</div><div style="color:var(--muted);font-size:12px;">Shot list, script & ready-to-paste prompts for every AI tool.</div></div>
+    <div id="charBadgeVideo"></div>
+    <div class="field"><label>Track Title</label><input type="text" id="v-title" placeholder="e.g. We Don't Care What They Think"></div>
+    <div class="field"><label>Artist</label><input type="text" id="v-artist" value="Zairey"></div>
+    <div class="field"><label>Mood</label><div class="chip-group"><button class="chip active" onclick="this.classList.toggle('active')">Soulful</button><button class="chip" onclick="this.classList.toggle('active')">Cinematic</button><button class="chip" onclick="this.classList.toggle('active')">Energetic</button><button class="chip" onclick="this.classList.toggle('active')">Moody</button><button class="chip" onclick="this.classList.toggle('active')">Romantic</button><button class="chip" onclick="this.classList.toggle('active')">Triumphant</button></div></div>
+    <div class="field"><label>Visual Style</label><div class="chip-group"><button class="chip active" onclick="this.classList.toggle('active')">Cinematic Film</button><button class="chip" onclick="this.classList.toggle('active')">Dark & Moody</button><button class="chip" onclick="this.classList.toggle('active')">Urban Luxury</button><button class="chip" onclick="this.classList.toggle('active')">Editorial</button><button class="chip" onclick="this.classList.toggle('active')">Abstract</button><button class="chip" onclick="this.classList.toggle('active')">Vintage Film</button></div></div>
+    <div class="field"><label>Duration</label><select id="v-duration"><option>15 seconds</option><option>30 seconds</option><option selected>60 seconds</option><option>3 minutes (Full Video)</option></select></div>
+    <div class="field"><label>Lyrics / Theme (optional)</label><textarea id="v-lyrics" placeholder="Paste a lyric or describe the core message..."></textarea></div>
+    <div class="field"><label>Platforms</label><div class="chip-group"><button class="chip active" onclick="this.classList.toggle('active')">Instagram</button><button class="chip active" onclick="this.classList.toggle('active')">TikTok</button><button class="chip" onclick="this.classList.toggle('active')">YouTube</button><button class="chip" onclick="this.classList.toggle('active')">Facebook</button></div></div>
+    <div class="divider"></div>
+    <button class="generate-btn" onclick="generate('video')">⚡ GENERATE PRODUCTION PACKAGE</button>
+  </div>
+
+  <!-- AD FORM -->
+  <div class="form-panel" id="form-ad" style="display:none;">
+    <div><div class="panel-label">Social Ad Studio</div><div style="color:var(--muted);font-size:12px;">Scroll-stopping scripts with visual prompts & hooks.</div></div>
+    <div id="charBadgeAd"></div>
+    <div class="field"><label>Promoting</label><select id="a-product"><option>Xclusic Merchant Program</option><option>Zairey Music (Buy the Album)</option><option>Xclusic Player (In-Store Streaming)</option><option>Single Track ($1.99)</option></select></div>
+    <div class="field"><label>Target Audience</label><div class="chip-group"><button class="chip active" onclick="this.classList.toggle('active')">Rideshare Drivers</button><button class="chip" onclick="this.classList.toggle('active')">Barbershop Owners</button><button class="chip" onclick="this.classList.toggle('active')">Music Fans 18-35</button><button class="chip" onclick="this.classList.toggle('active')">Small Business Owners</button><button class="chip" onclick="this.classList.toggle('active')">Faith Communities</button></div></div>
+    <div class="field"><label>Duration</label><select id="a-duration"><option>7 seconds</option><option selected>15 seconds</option><option>30 seconds</option><option>60 seconds</option></select></div>
+    <div class="field"><label>Tone</label><div class="chip-group"><button class="chip active" onclick="this.classList.toggle('active')">Bold & Direct</button><button class="chip" onclick="this.classList.toggle('active')">Aspirational</button><button class="chip" onclick="this.classList.toggle('active')">Conversational</button><button class="chip" onclick="this.classList.toggle('active')">Premium/Luxury</button></div></div>
+    <div class="field"><label>Platform</label><select id="a-platform"><option>Instagram Reels</option><option>TikTok</option><option>Facebook Feed</option><option>YouTube Shorts</option></select></div>
+    <div class="field"><label>Key Angle (optional)</label><textarea id="a-angle" placeholder="e.g. This music isn't on Spotify — earn money sharing it..."></textarea></div>
+    <div class="divider"></div>
+    <button class="generate-btn" onclick="generate('ad')">⚡ GENERATE AD PACKAGE</button>
+  </div>
+
+  <!-- ANIMATION FORM -->
+  <div class="form-panel" id="form-animation" style="display:none;">
+    <div><div class="panel-label">Animation Studio</div><div style="color:var(--muted);font-size:12px;">Character briefs, scene prompts & production specs.</div></div>
+    <div id="charBadgeAnim"></div>
+    <div class="field"><label>Animation Type</label><select id="an-type"><option>2D Character Animation</option><option>3D Cinematic Animation</option><option>Motion Graphics / Abstract</option><option>AI Talking Head (Hedra)</option><option>Cartoon / Illustrated Style</option></select></div>
+    <div class="field"><label>Scene / Story</label><textarea id="an-scene" placeholder="What happens in this animation..."></textarea></div>
+    <div class="field"><label>Visual Style</label><div class="chip-group"><button class="chip active" onclick="this.classList.toggle('active')">Pixar-Style 3D</button><button class="chip" onclick="this.classList.toggle('active')">Anime</button><button class="chip" onclick="this.classList.toggle('active')">Flat 2D Modern</button><button class="chip" onclick="this.classList.toggle('active')">Realistic Cinematic</button><button class="chip" onclick="this.classList.toggle('active')">Retro Cartoon</button><button class="chip" onclick="this.classList.toggle('active')">Dark Fantasy</button></div></div>
+    <div class="field"><label>Duration</label><select id="an-duration"><option>5-10 seconds (Loop)</option><option selected>15-30 seconds (Scene)</option><option>60 seconds</option><option>2-3 minutes</option></select></div>
+    <div class="field"><label>Target Use</label><div class="chip-group"><button class="chip active" onclick="this.classList.toggle('active')">Social Media</button><button class="chip" onclick="this.classList.toggle('active')">Music Video Insert</button><button class="chip" onclick="this.classList.toggle('active')">Children's Content</button><button class="chip" onclick="this.classList.toggle('active')">Brand Mascot</button></div></div>
+    <div class="field"><label>Additional Notes</label><textarea id="an-notes" placeholder="Color palette, music track, anything specific..."></textarea></div>
+    <div class="divider"></div>
+    <button class="generate-btn" onclick="generate('animation')">⚡ GENERATE ANIMATION BRIEF</button>
+  </div>
+
+  <!-- OUTPUT PANEL -->
+  <div class="output-panel" id="outputPanel">
+    <div class="out-empty" id="outputEmpty">
+      <div class="out-empty-icon">🎬</div>
+      <h3>Production package appears here</h3>
+      <p>Set a character above, fill the form, and hit Generate — you'll get shot lists, scripts, and prompts ready to paste into Hedra, Runway, Kling, and Pika.</p>
+    </div>
+    <div class="loading" id="loadingOverlay">
+      <div class="spinner"></div>
+      <div style="color:var(--muted);font-size:13px;" id="loadingText">Building your production package...</div>
+    </div>
+    <div class="out-content" id="outputContent" style="display:none;"></div>
+  </div>
+</div>
+
+<script>
+// ── STATE ──
+let apiKey = localStorage.getItem('lmw4k') || '';
+let activeCharacter = null;
+try { activeCharacter = JSON.parse(localStorage.getItem('lmw_character') || 'null'); } catch(e) {}
+
+// ── API KEY ──
+function checkKey() {
+  if (!apiKey) { document.getElementById('apiModal').classList.add('show'); setDot(false); }
+}
+function saveKey() {
+  const v = document.getElementById('apiKeyInput').value.trim();
+  if (!v) return;
+  localStorage.setItem('lmw4k', v); apiKey = v;
+  document.getElementById('apiModal').classList.remove('show'); setDot(true);
+}
+function clearKey() { localStorage.removeItem('lmw4k'); apiKey = ''; document.getElementById('apiKeyInput').value = ''; document.getElementById('apiModal').classList.add('show'); setDot(false); }
+function setDot(ok) { document.getElementById('apiDot').className = 'dot' + (ok?'':' off'); document.getElementById('apiStatusText').textContent = ok ? 'API Ready' : 'No API Key'; }
+
+// ── CHARACTER MODAL ──
+function openCharModal() { document.getElementById('charModal').classList.add('show'); }
+function closeCharModal() { document.getElementById('charModal').classList.remove('show'); }
+function switchCharTab(t) {
+  document.querySelectorAll('.modal-tab').forEach((b,i) => b.classList.toggle('active', (i===0 && t==='upload') || (i===1 && t==='generate')));
+  document.getElementById('charUploadTab').style.display = t === 'upload' ? 'block' : 'none';
+  document.getElementById('charGenerateTab').style.display = t === 'generate' ? 'block' : 'none';
+}
+
+// Image upload
+let uploadedImageBase64 = null;
+function handleImageUpload(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    uploadedImageBase64 = ev.target.result.split(',')[1];
+    const preview = document.getElementById('uploadPreview');
+    preview.src = ev.target.result;
+    preview.style.display = 'block';
+    document.getElementById('uploadPlaceholder').style.display = 'none';
+  };
+  reader.readAsDataURL(file);
+}
+
+async function analyzeAndSaveCharacter() {
+  const name = document.getElementById('uploadCharName').value.trim() || 'Character';
+  const desc = document.getElementById('uploadCharDesc').value.trim();
+  const btn = document.getElementById('analyzeBtn');
+  btn.disabled = true; btn.textContent = 'Analyzing...';
+
+  let profile = { name, description: desc, imageBase64: uploadedImageBase64, hasImage: !!uploadedImageBase64 };
+
+  if (uploadedImageBase64 && apiKey) {
+    try {
+      const messages = [{
+        role: 'user',
+        content: [
+          { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: uploadedImageBase64 } },
+          { type: 'text', text: `Analyze this character image and give me a detailed description for use in AI video generation prompts. Name: ${name}. ${desc ? 'Additional context: ' + desc : ''}\n\nProvide: physical appearance (detailed), clothing/style, mood/energy, and a one-paragraph "character prompt" I can drop into Runway, Kling, Hedra, or Midjourney to recreate this character consistently. Keep it under 200 words total. No JSON, just plain text with clear sections.` }
+        ]
+      }];
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+        body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 500, messages })
+      });
+      const data = await res.json();
+      profile.aiAnalysis = data.content?.[0]?.text || desc;
+    } catch(e) { profile.aiAnalysis = desc; }
+  } else {
+    profile.aiAnalysis = desc;
+  }
+
+  saveCharacter(profile);
+  btn.disabled = false; btn.textContent = 'ANALYZE & SAVE CHARACTER';
+  closeCharModal();
+}
+
+async function generateNewCharacter() {
+  const name = document.getElementById('genCharName').value.trim() || 'New Character';
+  const type = document.getElementById('genCharType').value;
+  const personality = document.getElementById('genCharPersonality').value;
+  const physical = document.getElementById('genCharPhysical').value;
+  const styles = Array.from(document.querySelectorAll('#genStyleChips .chip.active')).map(c=>c.textContent.trim()).join(', ');
+
+  if (!apiKey) { checkKey(); return; }
+  const btn = document.getElementById('generateCharBtn');
+  btn.style.display = 'none';
+  document.getElementById('charGenLoading').style.display = 'block';
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6', max_tokens: 800,
+        messages: [{ role: 'user', content: `Create a complete character profile for AI video/animation production.
+
+Name: ${name}
+Type: ${type}
+Visual Style: ${styles}
+Personality: ${personality}
+Physical Description: ${physical}
+Brand Context: Lamb Music Works — dark gold aesthetic, faith-friendly, No Cuss No Fuss
+
+Give me:
+1. APPEARANCE: Detailed physical description (2-3 sentences)
+2. STYLE: Clothing, accessories, signature look (2 sentences)
+3. ENERGY: How they move, their presence, performance style (1-2 sentences)
+4. MASTER PROMPT: A single paragraph prompt (80-100 words) to paste into Runway/Kling/Midjourney/Hedra to generate this character consistently
+
+Plain text, clear section headers, no JSON.` }]
+      })
+    });
+    const data = await res.json();
+    const analysis = data.content?.[0]?.text || `${name} — ${type} with ${styles} visual style.`;
+    saveCharacter({ name, description: `${type} | ${styles}`, aiAnalysis: analysis, hasImage: false });
+    closeCharModal();
+  } catch(e) {
+    alert('Generation failed. Check your API key.');
+  } finally {
+    btn.style.display = 'block';
+    document.getElementById('charGenLoading').style.display = 'none';
+  }
+}
+
+function saveCharacter(profile) {
+  activeCharacter = profile;
+  localStorage.setItem('lmw_character', JSON.stringify(profile));
+  updateCharBar();
+  updateCharBadges();
+}
+
+function clearCharacter() {
+  activeCharacter = null;
+  localStorage.removeItem('lmw_character');
+  uploadedImageBase64 = null;
+  updateCharBar();
+  updateCharBadges();
+}
+
+function updateCharBar() {
+  const preview = document.getElementById('charPreviewImg');
+  const nameEl = document.getElementById('charBarName');
+  const descEl = document.getElementById('charBarDesc');
+  const clearBtn = document.getElementById('clearCharBtn');
+  if (activeCharacter) {
+    if (activeCharacter.hasImage && activeCharacter.imageBase64) {
+      preview.innerHTML = `<img src="data:image/jpeg;base64,${activeCharacter.imageBase64}" style="width:100%;height:100%;object-fit:cover;">`;
+    } else {
+      preview.innerHTML = '🎭';
+    }
+    nameEl.textContent = activeCharacter.name;
+    descEl.textContent = (activeCharacter.aiAnalysis || activeCharacter.description || '').substring(0, 80) + '...';
+    clearBtn.style.display = 'inline-block';
+  } else {
+    preview.innerHTML = '👤';
+    nameEl.textContent = 'No character set';
+    descEl.textContent = 'Set a character to personalize every prompt';
+    clearBtn.style.display = 'none';
+  }
+}
+
+function updateCharBadges() {
+  ['charBadgeVideo','charBadgeAd','charBadgeAnim'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (activeCharacter) {
+      const imgHTML = (activeCharacter.hasImage && activeCharacter.imageBase64)
+        ? `<img class="char-badge-img" src="data:image/jpeg;base64,${activeCharacter.imageBase64}">`
+        : `<div class="char-badge-placeholder">🎭</div>`;
+      el.innerHTML = `<div class="char-badge">${imgHTML}<div class="char-badge-info"><div class="char-badge-name">${activeCharacter.name}</div><div class="char-badge-desc">${(activeCharacter.description||'').substring(0,60)}</div></div></div>`;
+    } else {
+      el.innerHTML = `<div style="font-size:12px;color:var(--muted);padding:6px 0;">💡 No character set — <button onclick="openCharModal()" style="background:none;border:none;color:var(--gold);font-size:12px;cursor:pointer;">Set one now</button> to personalize all prompts</div>`;
+    }
+  });
+}
+
+// ── TABS ──
+function switchTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+  ['video','ad','animation'].forEach(t => document.getElementById(`form-${t}`).style.display = t === tab ? 'flex' : 'none');
+  resetOutput();
+}
+function resetOutput() {
+  document.getElementById('outputEmpty').style.display = 'flex';
+  document.getElementById('loadingOverlay').classList.remove('show');
+  document.getElementById('outputContent').style.display = 'none';
+  document.getElementById('outputContent').innerHTML = '';
+}
+
+// ── HELPERS ──
+function getActiveChips(container) {
+  return Array.from(document.querySelectorAll(`#${container} .chip.active`)).map(c=>c.textContent.trim()).join(', ');
+}
+function charContext() {
+  if (!activeCharacter) return 'No specific character set — use a generic performer.';
+  return `CHARACTER: ${activeCharacter.name}\n${activeCharacter.aiAnalysis || activeCharacter.description || ''}`;
+}
+function copyText(text, btn) {
+  navigator.clipboard.writeText(text).then(() => {
+    if (btn) { const o = btn.textContent; btn.textContent = 'COPIED ✓'; btn.classList.add('copied'); setTimeout(()=>{ btn.textContent=o; btn.classList.remove('copied'); }, 2000); }
+  });
+}
+
+// ── GENERATE ──
+async function generate(type) {
+  if (!apiKey) { checkKey(); return; }
+  let prompt = '';
+  const loadingMsgs = { video: 'Directing your shots...', ad: 'Crafting your ad...', animation: 'Building animation brief...' };
+
+  if (type === 'video') {
+    prompt = `You are a professional music video director. Generate a complete production package.
+CHARACTER CONTEXT:\n${charContext()}
+TRACK: "${document.getElementById('v-title').value || 'Untitled'}" by ${document.getElementById('v-artist').value || 'Zairey'}
+MOOD: ${getActiveChips('form-video')||'Soulful, Cinematic'} | STYLE: Cinematic Film | DURATION: ${document.getElementById('v-duration').value}
+LYRICS/THEME: ${document.getElementById('v-lyrics').value || 'Not provided'}
+PLATFORMS: Instagram, TikTok
+
+Respond in exact JSON (no markdown, no backticks):
+{"title":"string","concept":"2-3 sentence overview","shots":[{"num":1,"type":"SHOT TYPE","description":"Detailed description referencing the character above","duration":"0:00-0:05","hedra_prompt":"Exact Hedra prompt featuring the character","runway_prompt":"Exact Runway Gen-3 prompt","kling_prompt":"Exact Kling AI prompt"}],"capcut_notes":"CapCut editing workflow","pika_prompt":"Master Pika aesthetic prompt","thumbnail_prompt":"Thumbnail generation prompt","caption":"Social caption with hashtags"}
+Generate 6-8 shots. Every prompt must reference the specific character when provided.`;
+  } else if (type === 'ad') {
+    prompt = `You are a top social media ad director. Generate a complete ad production package.
+CHARACTER CONTEXT:\n${charContext()}
+PRODUCT: ${document.getElementById('a-product').value}
+AUDIENCE: ${getActiveChips('form-ad')||'Rideshare Drivers'}
+DURATION: ${document.getElementById('a-duration').value} | PLATFORM: ${document.getElementById('a-platform').value}
+ANGLE: ${document.getElementById('a-angle').value || 'Not provided'}
+BRAND: Xclusic by Lamb Music Works — exclusive music not on Spotify/Apple/Tidal. No Cuss No Fuss.
+
+Respond in exact JSON:
+{"title":"string","hook":"First 3 seconds exactly","script":[{"time":"0:00-0:03","visual":"What's on screen","copy":"Voiceover/text overlay","type":"HOOK"}],"visual_prompts":{"runway":"prompt","kling":"prompt","pika":"prompt","hedra":"prompt featuring the character"},"text_overlays":["array of on-screen text"],"cta_text":"Final CTA","caption":"Full caption with hashtags","ab_variants":["2 alternative hooks"]}
+All prompts must feature the character when one is set.`;
+  } else {
+    prompt = `You are a professional animation director. Generate a complete animation brief.
+CHARACTER CONTEXT:\n${charContext()}
+TYPE: ${document.getElementById('an-type').value}
+SCENE: ${document.getElementById('an-scene').value || 'Character in motion'}
+STYLE: ${getActiveChips('form-animation')||'Pixar-Style 3D'}
+DURATION: ${document.getElementById('an-duration').value}
+USE: Social Media | Brand: Lamb Music Works dark gold aesthetic
+
+Respond in exact JSON:
+{"title":"string","concept":"Director vision","character_brief":{"appearance":"detailed","personality":"traits","movement_style":"how they move"},"scenes":[{"num":1,"description":"scene","duration":"timing","hedra_prompt":"prompt","runway_prompt":"prompt","kling_prompt":"prompt","pika_prompt":"prompt","midjourney_prompt":"prompt"}],"color_palette":"colors","music_notes":"sync guidance","capcut_workflow":"step by step","tools_recommended":["ranked tools with reasons"]}
+Every prompt must feature and describe the specific character.`;
+  }
+
+  document.getElementById('outputEmpty').style.display = 'none';
+  document.getElementById('outputContent').style.display = 'none';
+  const loading = document.getElementById('loadingOverlay');
+  loading.classList.add('show');
+  document.getElementById('loadingText').textContent = loadingMsgs[type];
+  document.querySelectorAll('.generate-btn').forEach(b => b.disabled = true);
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+      body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 4000, messages: [{ role: 'user', content: prompt }] })
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error.message);
+    const raw = data.content[0].text.trim();
+    let json;
+    try { json = JSON.parse(raw); } catch(e) { const m = raw.match(/\{[\s\S]*\}/); json = m ? JSON.parse(m[0]) : null; }
+    if (!json) throw new Error('Could not parse response — try again.');
+    renderOutput(type, json);
+  } catch(err) {
+    loading.classList.remove('show');
+    document.getElementById('outputEmpty').innerHTML = `<div class="out-empty-icon">⚠️</div><h3>Generation failed</h3><p style="color:var(--danger)">${err.message}</p>`;
+    document.getElementById('outputEmpty').style.display = 'flex';
+  } finally {
+    document.querySelectorAll('.generate-btn').forEach(b => b.disabled = false);
+    loading.classList.remove('show');
+  }
+}
+
+// ── RENDER ──
+function sec(title, bodyHTML, fullText) {
+  return `<div class="out-sec"><div class="out-sec-hdr"><div class="out-sec-title">${title}</div><button class="copy-btn" onclick="copyText(${JSON.stringify(fullText)}, this)">COPY</button></div><div class="out-sec-body">${bodyHTML}</div></div>`;
+}
+
+function renderOutput(type, data) {
+  const c = document.getElementById('outputContent');
+  c.innerHTML = '';
+  if (type === 'video') renderVideo(data, c);
+  else if (type === 'ad') renderAd(data, c);
+  else renderAnim(data, c);
+  c.style.display = 'flex';
+  window._lastOutput = JSON.stringify(data, null, 2);
+}
+
+function renderVideo(d, c) {
+  c.innerHTML += `<div class="out-hdr"><div><div class="out-title">${d.title||'VIDEO PACKAGE'}</div><div class="out-sub">${d.concept||''}</div></div><button class="copy-all-btn" onclick="copyText(window._lastOutput)">Copy All</button></div>`;
+  const shotsHTML = `<div class="shot-list">${(d.shots||[]).map(s=>`<div class="shot-card"><div class="shot-num">${s.num}</div><div><div class="shot-type">${s.type}</div><div class="shot-desc">${s.description}</div><div class="shot-dur">${s.duration}</div></div></div>`).join('')}</div>`;
+  c.innerHTML += sec('Shot List', shotsHTML, (d.shots||[]).map(s=>`SHOT ${s.num}: ${s.type}\n${s.description}\n${s.duration}`).join('\n\n'));
+  const promptsHTML = (d.shots||[]).map(s=>`<div style="margin-bottom:18px;padding-bottom:18px;border-bottom:1px solid var(--border);"><div style="font-size:11px;font-weight:700;color:#666;margin-bottom:8px;text-transform:uppercase;">Shot ${s.num} — ${s.type}</div><div class="tool-label">🎭 Hedra</div><div class="prompt-block" onclick="copyText(this.textContent)">${s.hedra_prompt}</div><div class="tool-label">🎬 Runway Gen-3</div><div class="prompt-block" onclick="copyText(this.textContent)">${s.runway_prompt}</div><div class="tool-label">⚡ Kling</div><div class="prompt-block" onclick="copyText(this.textContent)">${s.kling_prompt}</div></div>`).join('');
+  c.innerHTML += sec('AI Prompts — Click Any to Copy', promptsHTML, (d.shots||[]).map(s=>`SHOT ${s.num}\nHEDRA: ${s.hedra_prompt}\nRUNWAY: ${s.runway_prompt}\nKLING: ${s.kling_prompt}`).join('\n\n'));
+  c.innerHTML += sec('Pika + Thumbnail', `<div class="tool-label">🌊 Pika</div><div class="prompt-block" onclick="copyText(this.textContent)">${d.pika_prompt||''}</div><div class="tool-label">🖼 Thumbnail</div><div class="prompt-block" onclick="copyText(this.textContent)">${d.thumbnail_prompt||''}</div>`, `PIKA:\n${d.pika_prompt}\n\nTHUMBNAIL:\n${d.thumbnail_prompt}`);
+  c.innerHTML += sec('CapCut Notes', `<div style="font-size:13px;line-height:1.8">${d.capcut_notes||''}</div>`, d.capcut_notes||'');
+  c.innerHTML += sec('Caption', `<div style="font-size:13px;line-height:1.8">${(d.caption||'').replace(/\n/g,'<br>')}</div>`, d.caption||'');
+}
+
+function renderAd(d, c) {
+  c.innerHTML += `<div class="out-hdr"><div><div class="out-title">${d.title||'AD PACKAGE'}</div><div class="out-sub">Hook: ${d.hook||''}</div></div><button class="copy-all-btn" onclick="copyText(window._lastOutput)">Copy All</button></div>`;
+  const scriptHTML = `<div class="script-block">${(d.script||[]).map(l=>`<div class="script-line"><div class="script-cue">${l.time}<br><span style="color:var(--gold);font-size:9px">${l.type}</span></div><div><div style="font-size:11px;color:#666;margin-bottom:2px">${l.visual}</div><div>${l.copy}</div></div></div>`).join('')}</div>`;
+  c.innerHTML += sec('Script', scriptHTML, (d.script||[]).map(l=>`[${l.time}] ${l.type}\n${l.visual}\n${l.copy}`).join('\n\n'));
+  const vp = d.visual_prompts||{};
+  c.innerHTML += sec('Visual Prompts', `<div class="tool-label">🎭 Hedra</div><div class="prompt-block" onclick="copyText(this.textContent)">${vp.hedra||''}</div><div class="tool-label">🎬 Runway</div><div class="prompt-block" onclick="copyText(this.textContent)">${vp.runway||''}</div><div class="tool-label">⚡ Kling</div><div class="prompt-block" onclick="copyText(this.textContent)">${vp.kling||''}</div><div class="tool-label">🌊 Pika</div><div class="prompt-block" onclick="copyText(this.textContent)">${vp.pika||''}</div>`, Object.entries(vp).map(([k,v])=>`${k.toUpperCase()}:\n${v}`).join('\n\n'));
+  c.innerHTML += sec('A/B Hooks', (d.ab_variants||[]).map(v=>`<div class="prompt-block" onclick="copyText(this.textContent)">${v}</div>`).join(''), (d.ab_variants||[]).join('\n\n'));
+  c.innerHTML += sec('Text Overlays + CTA', (d.text_overlays||[]).map((t,i)=>`<div style="display:flex;gap:8px;margin-bottom:7px;font-size:13px"><span style="color:var(--gold);font-family:'Space Mono',monospace;font-size:11px;min-width:18px">${i+1}</span>${t}</div>`).join('') + `<div style="margin-top:10px;padding:11px;background:var(--gold-bg);border:1px solid var(--gold-dim);border-radius:6px;font-weight:600;color:var(--gold-bright)">${d.cta_text||''}</div>`, (d.text_overlays||[]).join('\n') + '\n\nCTA: ' + d.cta_text);
+  c.innerHTML += sec('Caption', `<div style="font-size:13px;line-height:1.8">${(d.caption||'').replace(/\n/g,'<br>')}</div>`, d.caption||'');
+}
+
+function renderAnim(d, c) {
+  c.innerHTML += `<div class="out-hdr"><div><div class="out-title">${d.title||'ANIMATION BRIEF'}</div><div class="out-sub">${d.concept||''}</div></div><button class="copy-all-btn" onclick="copyText(window._lastOutput)">Copy All</button></div>`;
+  const ch = d.character_brief||{};
+  c.innerHTML += sec('Character Brief', `<div class="brief-grid"><div class="brief-item"><div class="brief-label">Appearance</div><div class="brief-val">${ch.appearance||''}</div></div><div class="brief-item"><div class="brief-label">Personality</div><div class="brief-val">${ch.personality||''}</div></div><div class="brief-item" style="grid-column:1/-1"><div class="brief-label">Movement Style</div><div class="brief-val">${ch.movement_style||''}</div></div></div>`, `APPEARANCE: ${ch.appearance}\nPERSONALITY: ${ch.personality}\nMOVEMENT: ${ch.movement_style}`);
+  const scenesHTML = (d.scenes||[]).map(s=>`<div style="margin-bottom:20px;padding-bottom:20px;border-bottom:1px solid var(--border);"><div style="font-weight:600;margin-bottom:4px;">Scene ${s.num} — ${s.duration}</div><div style="font-size:13px;color:#aaa;margin-bottom:10px">${s.description}</div>${s.hedra_prompt?`<div class="tool-label">🎭 Hedra</div><div class="prompt-block" onclick="copyText(this.textContent)">${s.hedra_prompt}</div>`:''}<div class="tool-label">🎬 Runway</div><div class="prompt-block" onclick="copyText(this.textContent)">${s.runway_prompt||''}</div><div class="tool-label">⚡ Kling</div><div class="prompt-block" onclick="copyText(this.textContent)">${s.kling_prompt||''}</div><div class="tool-label">🌊 Pika</div><div class="prompt-block" onclick="copyText(this.textContent)">${s.pika_prompt||''}</div><div class="tool-label">🖼 Midjourney</div><div class="prompt-block" onclick="copyText(this.textContent)">${s.midjourney_prompt||''}</div></div>`).join('');
+  c.innerHTML += sec('Scenes + AI Prompts', scenesHTML, (d.scenes||[]).map(s=>`SCENE ${s.num}\n${s.description}\nRUNWAY: ${s.runway_prompt}`).join('\n\n'));
+  c.innerHTML += sec('Style + Music', `<div class="brief-grid"><div class="brief-item" style="grid-column:1/-1"><div class="brief-label">Color Palette</div><div class="brief-val">${d.color_palette||''}</div></div><div class="brief-item" style="grid-column:1/-1"><div class="brief-label">Music Sync Notes</div><div class="brief-val">${d.music_notes||''}</div></div></div>`, `COLOR: ${d.color_palette}\nMUSIC: ${d.music_notes}`);
+  c.innerHTML += sec('CapCut Workflow', `<div style="font-size:13px;line-height:1.8">${(d.capcut_workflow||'').replace(/\n/g,'<br>')}</div>`, d.capcut_workflow||'');
+  c.innerHTML += sec('Recommended Tools', (d.tools_recommended||[]).map((t,i)=>`<div style="display:flex;gap:8px;margin-bottom:7px;font-size:13px"><span style="color:var(--gold);font-family:'Space Mono',monospace;font-size:11px;min-width:18px">${i+1}</span>${t}</div>`).join(''), (d.tools_recommended||[]).map((t,i)=>`${i+1}. ${t}`).join('\n'));
+}
+
+// ── INIT ──
+checkKey();
+setDot(!!apiKey);
+updateCharBar();
+updateCharBadges();
+</script>
+</body>
+</html>
